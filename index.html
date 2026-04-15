@@ -2,125 +2,298 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>资产管理系统</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Meeting</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08111f;
+      --panel: rgba(8, 17, 31, 0.76);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #f2f7ff;
+      --muted: rgba(242, 247, 255, 0.72);
+      --accent: #27c281;
+      --danger: #f25c54;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background:
+        radial-gradient(circle at top, rgba(39, 194, 129, 0.18), transparent 28%),
+        linear-gradient(180deg, #0d1a2d 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      overflow: hidden;
+    }
+
+    body {
+      position: relative;
+    }
+
+    #meeting-root,
+    #jitsi-container {
+      width: 100%;
+      height: 100%;
+    }
+
+    .loading,
+    .ended {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, rgba(3, 7, 18, 0.72), rgba(3, 7, 18, 0.92));
+      z-index: 10;
+      padding: 24px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .card {
+      width: min(92vw, 420px);
+      padding: 24px;
+      border-radius: 20px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      text-align: center;
+      backdrop-filter: blur(14px);
+    }
+
+    .title {
+      margin: 0 0 10px;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .desc {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    .bar {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: calc(16px + env(safe-area-inset-bottom));
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    .bar-inner {
+      display: flex;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 999px;
+      background: rgba(5, 10, 18, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      pointer-events: auto;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      min-width: 104px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.16s ease, opacity 0.16s ease, background 0.16s ease;
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.99);
+    }
+
+    .ghost {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .danger {
+      color: #fff;
+      background: var(--danger);
+    }
+
+    .primary {
+      color: #04130c;
+      background: var(--accent);
+    }
+
+    .actions {
+      margin-top: 18px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 640px) {
+      .bar {
+        left: 10px;
+        right: 10px;
+      }
+
+      .bar-inner {
+        width: 100%;
+        justify-content: center;
+      }
+
+      button {
+        flex: 1;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div id="app" class="container-fluid">
-    <div class="row">
-      <!-- 左侧菜单栏 -->
-      <div class="col-md-3 bg-light vh-100 p-3">
-        <h4>菜单</h4>
-        <ul class="nav flex-column">
-          <li class="nav-item">
-            <a href="#" class="nav-link" :class="{active: currentView === 'overview'}" @click="currentView = 'overview'">资产一览</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link" :class="{active: currentView === 'networth'}" @click="currentView = 'networth'">修改净值</a>
-          </li>
-        </ul>
-      </div>
+  <div id="meeting-root">
+    <div id="jitsi-container"></div>
 
-      <!-- 右侧主内容 -->
-      <div class="col-md-9 p-4">
-        <component :is="currentViewComponent"></component>
+    <div id="loading" class="loading">
+      <div class="card">
+        <h1 class="title">正在进入会议</h1>
+        <p class="desc">页面会直接进入房间 `kase2439phoneroom`。如果首次打开浏览器请求麦克风或摄像头权限，请允许访问。</p>
+      </div>
+    </div>
+
+    <div id="ended" class="ended hidden">
+      <div class="card">
+        <h1 class="title">已退出会议</h1>
+        <p class="desc">会议已经结束。你可以返回上一页，或者重新进入当前房间。</p>
+        <div class="actions">
+          <button id="back-after-end" class="ghost" type="button">返回上一页</button>
+          <button id="rejoin" class="primary" type="button">重新进入</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Vue 脚本 -->
+  <div class="bar">
+    <div class="bar-inner">
+      <button id="back-btn" class="ghost" type="button">返回</button>
+      <button id="leave-btn" class="danger" type="button">退出会议</button>
+    </div>
+  </div>
+
+  <script src="https://meet.jit.si/external_api.js"></script>
   <script>
-    const AssetOverview = {
-      template: `
-        <div>
-          <h2>资产一览</h2>
-          <form @submit.prevent="addAsset" class="row g-3 mb-4">
-            <div class="col-md-4">
-              <input v-model="newAsset.name" class="form-control" placeholder="资产名称" required>
-            </div>
-            <div class="col-md-4">
-              <input v-model.number="newAsset.amount" class="form-control" type="number" placeholder="金额" required>
-            </div>
-            <div class="col-md-4">
-              <button type="submit" class="btn btn-primary w-100">添加资产</button>
-            </div>
-          </form>
+    const ROOM_NAME = 'kase2439phoneroom';
+    const DOMAIN = 'meet.jit.si';
 
-          <table class="table table-striped">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>资产名称</th>
-                <th>金额</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(asset, index) in assets" :key="index">
-                <td>{{ index + 1 }}</td>
-                <td>{{ asset.name }}</td>
-                <td>¥{{ asset.amount.toLocaleString() }}</td>
-                <td>
-                  <button class="btn btn-sm btn-danger" @click="removeAsset(index)">删除</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <div><strong>总资产：</strong> ¥{{ totalAmount.toLocaleString() }}</div>
-        </div>
-      `,
-      data() {
-        return {
-          newAsset: { name: '', amount: 0 },
-          assets: []
-        };
-      },
-      computed: {
-        totalAmount() {
-          return this.assets.reduce((sum, item) => sum + item.amount, 0);
-        }
-      },
-      methods: {
-        addAsset() {
-          if (!this.newAsset.name || this.newAsset.amount <= 0) return;
-          this.assets.push({ ...this.newAsset });
-          this.newAsset.name = '';
-          this.newAsset.amount = 0;
+    let api = null;
+    let conferenceLeft = false;
+
+    const loadingEl = document.getElementById('loading');
+    const endedEl = document.getElementById('ended');
+    const jitsiContainer = document.getElementById('jitsi-container');
+    const leaveBtn = document.getElementById('leave-btn');
+    const backBtn = document.getElementById('back-btn');
+    const rejoinBtn = document.getElementById('rejoin');
+    const backAfterEndBtn = document.getElementById('back-after-end');
+
+    function showLoading() {
+      loadingEl.classList.remove('hidden');
+      endedEl.classList.add('hidden');
+    }
+
+    function showEnded() {
+      loadingEl.classList.add('hidden');
+      endedEl.classList.remove('hidden');
+    }
+
+    function hideLoading() {
+      loadingEl.classList.add('hidden');
+    }
+
+    function navigateBack() {
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+      window.close();
+    }
+
+    function disposeConference() {
+      if (!api) {
+        return;
+      }
+      api.dispose();
+      api = null;
+      jitsiContainer.innerHTML = '';
+    }
+
+    function onConferenceLeft() {
+      conferenceLeft = true;
+      disposeConference();
+      showEnded();
+    }
+
+    function buildConference() {
+      conferenceLeft = false;
+      disposeConference();
+      showLoading();
+
+      api = new JitsiMeetExternalAPI(DOMAIN, {
+        roomName: ROOM_NAME,
+        parentNode: jitsiContainer,
+        width: '100%',
+        height: '100%',
+        userInfo: {
+          displayName: 'Guest'
         },
-        removeAsset(index) {
-          this.assets.splice(index, 1);
+        configOverwrite: {
+          prejoinConfig: {
+            enabled: false
+          },
+          startWithAudioMuted: false,
+          startWithVideoMuted: false,
+          disableDeepLinking: true
+        },
+        interfaceConfigOverwrite: {
+          MOBILE_APP_PROMO: false,
+          SHOW_JITSI_WATERMARK: false,
+          SHOW_WATERMARK_FOR_GUESTS: false,
+          DEFAULT_REMOTE_DISPLAY_NAME: '参会者'
         }
+      });
+
+      api.addListener('videoConferenceJoined', hideLoading);
+      api.addListener('readyToClose', onConferenceLeft);
+      api.addListener('videoConferenceLeft', onConferenceLeft);
+    }
+
+    leaveBtn.addEventListener('click', function () {
+      if (api && !conferenceLeft) {
+        api.executeCommand('hangup');
+        return;
       }
-    };
+      showEnded();
+    });
 
-    const NetWorthEditor = {
-      template: `
-        <div>
-          <h2>修改净值</h2>
-          <p>此处为修改净值功能，可扩展其他表单或计算逻辑。</p>
-        </div>
-      `
-    };
+    backBtn.addEventListener('click', navigateBack);
+    backAfterEndBtn.addEventListener('click', navigateBack);
+    rejoinBtn.addEventListener('click', buildConference);
 
-    const { createApp } = Vue;
-
-    createApp({
-      data() {
-        return {
-          currentView: 'overview'
-        };
-      },
-      computed: {
-        currentViewComponent() {
-          return this.currentView === 'overview' ? 'AssetOverview' : 'NetWorthEditor';
-        }
-      },
-      components: {
-        AssetOverview,
-        NetWorthEditor
-      }
-    }).mount('#app');
+    buildConference();
   </script>
 </body>
 </html>
