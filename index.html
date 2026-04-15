@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -87,18 +87,16 @@
     .bar {
       position: absolute;
       left: 16px;
-      right: 16px;
+      right: auto;
       bottom: calc(16px + env(safe-area-inset-bottom));
       display: flex;
-      gap: 12px;
-      justify-content: center;
+      justify-content: flex-start;
       z-index: 20;
       pointer-events: none;
     }
 
     .bar-inner {
       display: flex;
-      gap: 12px;
       padding: 12px;
       border-radius: 999px;
       background: rgba(5, 10, 18, 0.7);
@@ -124,11 +122,6 @@
       transform: translateY(1px) scale(0.99);
     }
 
-    .ghost {
-      color: var(--text);
-      background: rgba(255, 255, 255, 0.1);
-    }
-
     .danger {
       color: #fff;
       background: var(--danger);
@@ -139,27 +132,14 @@
       background: var(--accent);
     }
 
-    .actions {
-      margin-top: 18px;
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
     @media (max-width: 640px) {
       .bar {
         left: 10px;
-        right: 10px;
+        right: auto;
       }
 
       .bar-inner {
-        width: 100%;
-        justify-content: center;
-      }
-
-      button {
-        flex: 1;
+        justify-content: flex-start;
       }
     }
   </style>
@@ -170,27 +150,22 @@
 
     <div id="loading" class="loading">
       <div class="card">
-        <h1 class="title">正在进入会议</h1>
-        <p class="desc">页面会直接进入房间 `kase2439phoneroom`。如果首次打开浏览器请求麦克风或摄像头权限，请允许访问。</p>
+        <h1 class="title">会議に接続しています</h1>
+        <p class="desc">ページを開くと、そのまま `kase2439phoneroom` に入室します。初回はブラウザからマイクやカメラの許可を求められる場合があります。</p>
       </div>
     </div>
 
     <div id="ended" class="ended hidden">
       <div class="card">
-        <h1 class="title">已退出会议</h1>
-        <p class="desc">会议已经结束。你可以返回上一页，或者重新进入当前房间。</p>
-        <div class="actions">
-          <button id="back-after-end" class="ghost" type="button">返回上一页</button>
-          <button id="rejoin" class="primary" type="button">重新进入</button>
-        </div>
+        <h1 class="title">会議を終了しました</h1>
+        <p class="desc">会議は終了しました。このページを閉じるか、前の画面に戻ってください。</p>
       </div>
     </div>
   </div>
 
   <div class="bar">
     <div class="bar-inner">
-      <button id="back-btn" class="ghost" type="button">返回</button>
-      <button id="leave-btn" class="danger" type="button">退出会议</button>
+      <button id="leave-btn" class="danger" type="button">戻る</button>
     </div>
   </div>
 
@@ -206,10 +181,6 @@
     const endedEl = document.getElementById('ended');
     const jitsiContainer = document.getElementById('jitsi-container');
     const leaveBtn = document.getElementById('leave-btn');
-    const backBtn = document.getElementById('back-btn');
-    const rejoinBtn = document.getElementById('rejoin');
-    const backAfterEndBtn = document.getElementById('back-after-end');
-
     function showLoading() {
       loadingEl.classList.remove('hidden');
       endedEl.classList.add('hidden');
@@ -284,16 +255,13 @@
     leaveBtn.addEventListener('click', function () {
       if (api && !conferenceLeft) {
         api.executeCommand('hangup');
-        return;
+      } else {
+        navigateBack();
       }
-      showEnded();
     });
-
-    backBtn.addEventListener('click', navigateBack);
-    backAfterEndBtn.addEventListener('click', navigateBack);
-    rejoinBtn.addEventListener('click', buildConference);
 
     buildConference();
   </script>
 </body>
 </html>
+
