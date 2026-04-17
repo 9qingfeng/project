@@ -4,22 +4,263 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Meeting</title>
-</head>
-<body>
-  <script>
-    const ROOM_NAME = 'kase2439phoneroom2';
-    const DOMAIN = 'meet.jit.si';
-    const meetingUrl = new URL(`https://${DOMAIN}/${ROOM_NAME}`);
-
-    meetingUrl.hash = 'config.prejoinPageEnabled=false&config.disableDeepLinking=true';
-
-    function redirectToMeeting() {
-      window.location.replace(meetingUrl.toString());
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08111f;
+      --panel: rgba(8, 17, 31, 0.76);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #f2f7ff;
+      --muted: rgba(242, 247, 255, 0.72);
+      --accent: #27c281;
+      --danger: #f25c54;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
     }
 
-    window.addEventListener('load', function () {
-      redirectToMeeting();
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background:
+        radial-gradient(circle at top, rgba(39, 194, 129, 0.18), transparent 28%),
+        linear-gradient(180deg, #0d1a2d 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      overflow: hidden;
+    }
+
+    body {
+      position: relative;
+    }
+
+    #meeting-root,
+    #jitsi-container {
+      width: 100%;
+      height: 100%;
+    }
+
+    .loading,
+    .ended {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, rgba(3, 7, 18, 0.72), rgba(3, 7, 18, 0.92));
+      z-index: 10;
+      padding: 24px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .card {
+      width: min(92vw, 420px);
+      padding: 24px;
+      border-radius: 20px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      text-align: center;
+      backdrop-filter: blur(14px);
+    }
+
+    .title {
+      margin: 0 0 10px;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .desc {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    .bar {
+      position: absolute;
+      left: 16px;
+      right: auto;
+      bottom: calc(16px + env(safe-area-inset-bottom));
+      display: flex;
+      justify-content: flex-start;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    .bar-inner {
+      display: flex;
+      padding: 12px;
+      border-radius: 999px;
+      background: rgba(5, 10, 18, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      pointer-events: auto;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      min-width: 104px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.16s ease, opacity 0.16s ease, background 0.16s ease;
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.99);
+    }
+
+    .danger {
+      color: #fff;
+      background: var(--danger);
+    }
+
+    .primary {
+      color: #04130c;
+      background: var(--accent);
+    }
+
+    @media (max-width: 640px) {
+      .bar {
+        left: 10px;
+        right: auto;
+      }
+
+      .bar-inner {
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="meeting-root">
+    <div id="jitsi-container"></div>
+
+    <div id="loading" class="loading">
+      <div class="card">
+        <h1 class="title">会議に接続しています</h1>
+        <p class="desc">ページを開くと、そのまま `kase2439phoneroom` に入室します。初回はブラウザからマイクやカメラの許可を求められる場合があります。</p>
+      </div>
+    </div>
+
+    <div id="ended" class="ended hidden">
+      <div class="card">
+        <h1 class="title">会議を終了しました</h1>
+        <p class="desc">会議は終了しました。このページを閉じるか、前の画面に戻ってください。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <div class="bar-inner">
+      <button id="leave-btn" class="danger" type="button">戻る</button>
+    </div>
+  </div>
+
+  <script src="https://meet.jit.si/external_api.js"></script>
+  <script>
+    const ROOM_NAME = 'kase2439phoneroom';
+    const DOMAIN = 'meet.jit.si';
+
+    let api = null;
+    let conferenceLeft = false;
+
+    const loadingEl = document.getElementById('loading');
+    const endedEl = document.getElementById('ended');
+    const jitsiContainer = document.getElementById('jitsi-container');
+    const leaveBtn = document.getElementById('leave-btn');
+    function showLoading() {
+      loadingEl.classList.remove('hidden');
+      endedEl.classList.add('hidden');
+    }
+
+    function showEnded() {
+      loadingEl.classList.add('hidden');
+      endedEl.classList.remove('hidden');
+    }
+
+    function hideLoading() {
+      loadingEl.classList.add('hidden');
+    }
+
+    function navigateBack() {
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+      window.close();
+    }
+
+    function disposeConference() {
+      if (!api) {
+        return;
+      }
+      api.dispose();
+      api = null;
+      jitsiContainer.innerHTML = '';
+    }
+
+    function onConferenceLeft() {
+      conferenceLeft = true;
+      disposeConference();
+      showEnded();
+    }
+
+    function buildConference() {
+      conferenceLeft = false;
+      disposeConference();
+      showLoading();
+
+      api = new JitsiMeetExternalAPI(DOMAIN, {
+        roomName: ROOM_NAME,
+        parentNode: jitsiContainer,
+        width: '100%',
+        height: '100%',
+        userInfo: {
+          displayName: 'Guest'
+        },
+        configOverwrite: {
+          prejoinConfig: {
+            enabled: false
+          },
+          startWithAudioMuted: false,
+          startWithVideoMuted: false,
+          disableDeepLinking: true
+        },
+        interfaceConfigOverwrite: {
+          MOBILE_APP_PROMO: false,
+          SHOW_JITSI_WATERMARK: false,
+          SHOW_WATERMARK_FOR_GUESTS: false,
+          DEFAULT_REMOTE_DISPLAY_NAME: '参会者'
+        }
+      });
+
+      api.addListener('videoConferenceJoined', hideLoading);
+      api.addListener('readyToClose', onConferenceLeft);
+      api.addListener('videoConferenceLeft', onConferenceLeft);
+    }
+
+    leaveBtn.addEventListener('click', function () {
+      if (api && !conferenceLeft) {
+        api.executeCommand('hangup');
+      } else {
+        navigateBack();
+      }
     });
+
+    buildConference();
   </script>
 </body>
 </html>
