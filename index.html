@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Meeting</title>
+  <title>Doctor Video Call</title>
   <style>
     :root {
       color-scheme: dark;
-      --bg: #08111f;
-      --panel: rgba(8, 17, 31, 0.76);
+      --bg: #07101b;
+      --panel: rgba(10, 20, 32, 0.84);
       --line: rgba(255, 255, 255, 0.12);
-      --text: #f2f7ff;
-      --muted: rgba(242, 247, 255, 0.72);
-      --accent: #27c281;
+      --text: #f3f7ff;
+      --muted: rgba(243, 247, 255, 0.72);
+      --accent: #22c983;
       --danger: #f25c54;
-      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
     }
 
     * {
@@ -27,8 +27,8 @@
       width: 100%;
       height: 100%;
       background:
-        radial-gradient(circle at top, rgba(39, 194, 129, 0.18), transparent 28%),
-        linear-gradient(180deg, #0d1a2d 0%, var(--bg) 100%);
+        radial-gradient(circle at top, rgba(34, 201, 131, 0.18), transparent 28%),
+        linear-gradient(180deg, #0a1627 0%, var(--bg) 100%);
       color: var(--text);
       font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
       overflow: hidden;
@@ -38,14 +38,178 @@
       position: relative;
     }
 
-    #meeting-root,
-    #jitsi-container {
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr;
       width: 100%;
       height: 100%;
     }
 
-    .loading,
-    .ended {
+    .stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: rgba(5, 12, 21, 0.72);
+    }
+
+    .video-slot {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .video-slot video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #03070f;
+    }
+
+    .local-card {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: min(26vw, 300px);
+      aspect-ratio: 4 / 3;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(2, 7, 14, 0.86);
+      box-shadow: var(--shadow);
+      z-index: 3;
+    }
+
+    .local-card .label,
+    .remote-empty .label {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.4);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      z-index: 2;
+    }
+
+    .remote-empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 14px;
+      background: linear-gradient(180deg, rgba(4, 8, 16, 0.58), rgba(4, 8, 16, 0.88));
+      z-index: 1;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .remote-empty h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 46px);
+    }
+
+    .remote-empty p {
+      margin: 0;
+      max-width: 640px;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .top-bar {
+      position: absolute;
+      left: 20px;
+      top: 20px;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      border-radius: 20px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .room-pill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .status-text {
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .bottom-bar {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      z-index: 4;
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .bottom-inner {
+      display: flex;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 999px;
+      background: rgba(5, 10, 18, 0.74);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      pointer-events: auto;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      min-width: 112px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.16s ease, opacity 0.16s ease, background 0.16s ease;
+    }
+
+    button:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.99);
+    }
+
+    .primary {
+      color: #04130c;
+      background: var(--accent);
+    }
+
+    .ghost {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .danger {
+      color: #fff;
+      background: var(--danger);
+    }
+
+    .overlay {
       position: absolute;
       inset: 0;
       display: flex;
@@ -61,9 +225,9 @@
     }
 
     .card {
-      width: min(92vw, 420px);
+      width: min(92vw, 440px);
       padding: 24px;
-      border-radius: 20px;
+      border-radius: 22px;
       background: var(--panel);
       border: 1px solid var(--line);
       box-shadow: var(--shadow);
@@ -71,197 +235,278 @@
       backdrop-filter: blur(14px);
     }
 
-    .title {
+    .card h2 {
       margin: 0 0 10px;
       font-size: 24px;
-      font-weight: 700;
     }
 
-    .desc {
+    .card p {
       margin: 0;
       color: var(--muted);
-      line-height: 1.6;
+      line-height: 1.7;
       font-size: 15px;
+      white-space: pre-line;
     }
 
-    .bar {
-      position: absolute;
-      left: 16px;
-      right: auto;
-      bottom: calc(16px + env(safe-area-inset-bottom));
-      display: flex;
-      justify-content: flex-start;
-      z-index: 20;
-      pointer-events: none;
-    }
-
-    .bar-inner {
-      display: flex;
-      padding: 12px;
-      border-radius: 999px;
-      background: rgba(5, 10, 18, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(12px);
-      pointer-events: auto;
-    }
-
-    button {
-      appearance: none;
-      border: 0;
-      border-radius: 999px;
-      padding: 12px 18px;
-      min-width: 104px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 0.16s ease, opacity 0.16s ease, background 0.16s ease;
-    }
-
-    button:active {
-      transform: translateY(1px) scale(0.99);
-    }
-
-    .danger {
-      color: #fff;
-      background: var(--danger);
-    }
-
-    .primary {
-      color: #04130c;
-      background: var(--accent);
-    }
-
-    @media (max-width: 640px) {
-      .bar {
-        left: 10px;
-        right: auto;
+    @media (max-width: 800px) {
+      .local-card {
+        width: 42vw;
+        top: 16px;
+        right: 16px;
       }
 
-      .bar-inner {
-        justify-content: flex-start;
+      .top-bar {
+        left: 16px;
+        top: 16px;
+        max-width: calc(100% - 148px);
+        flex-wrap: wrap;
+      }
+
+      .bottom-bar {
+        left: 12px;
+        right: 12px;
+      }
+
+      .bottom-inner {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        border-radius: 24px;
       }
     }
   </style>
 </head>
 <body>
-  <div id="meeting-root">
-    <div id="jitsi-container"></div>
-
-    <div id="loading" class="loading">
-      <div class="card">
-        <h1 class="title">会議に接続しています</h1>
-        <p class="desc">ページを開くと、そのまま `kase2439phoneroom` に入室します。初回はブラウザからマイクやカメラの許可を求められる場合があります。</p>
+  <div class="layout">
+    <main class="stage">
+      <div class="top-bar">
+        <span class="room-pill">Room: <strong id="room-name">kaseroom</strong></span>
+        <span id="status-text" class="status-text">ページを開くと自動で入室します</span>
       </div>
-    </div>
 
-    <div id="ended" class="ended hidden">
-      <div class="card">
-        <h1 class="title">会議を終了しました</h1>
-        <p class="desc">会議は終了しました。このページを閉じるか、前の画面に戻ってください。</p>
+      <section id="remote-stage" class="video-slot">
+        <div id="remote-empty" class="remote-empty">
+          <span class="label">Doctor View</span>
+          <h1>ロボットの入室を待っています</h1>
+          <p>このページは Agora の簡易 Web 端です。
+同じ room に入ると、ロボット端とそのままビデオ通話を開始します。</p>
+        </div>
+      </section>
+
+      <aside class="local-card">
+        <span class="label">Local Camera</span>
+        <div id="local-stage" class="video-slot"></div>
+      </aside>
+
+      <div class="bottom-bar">
+        <div class="bottom-inner">
+          <button id="toggle-mic-btn" class="ghost" type="button" disabled>マイク</button>
+          <button id="toggle-camera-btn" class="ghost" type="button" disabled>カメラ</button>
+          <button id="leave-btn" class="danger" type="button" disabled>退出</button>
+        </div>
       </div>
-    </div>
+
+      <div id="loading-overlay" class="overlay">
+        <div class="card">
+          <h2>Agora に接続しています</h2>
+          <p>初回はブラウザからマイクやカメラの許可を求められる場合があります。
+許可すると、そのまま room `kaseroom` に参加します。</p>
+        </div>
+      </div>
+
+      <div id="error-overlay" class="overlay hidden">
+        <div class="card">
+          <h2>入室に失敗しました</h2>
+          <p id="error-text">不明なエラーが発生しました。</p>
+        </div>
+      </div>
+    </main>
   </div>
 
-  <div class="bar">
-    <div class="bar-inner">
-      <button id="leave-btn" class="danger" type="button">戻る</button>
-    </div>
-  </div>
-
-  <script src="https://meet.jit.si/external_api.js"></script>
+  <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.24.0.js"></script>
   <script>
-    const ROOM_NAME = 'kase2439phoneroom';
-    const DOMAIN = 'meet.jit.si';
+    const APP_ID = "fd3b3041a23648d7b4c023d6cf9d72c4";
+    const CHANNEL = "kaseroom";
+    const TOKEN = "007eJxTYLguprdGbEOXnLr8mou1xZJezyJyqiVmyjyaKKEVOrP/SYoCQ1qKcZKxgYlhopGxmYlFinmSSbKBkXGKWXKaZYq5UbKJ4JanmQ2BjAwZhsGsjAwQCOJzMGQnFqcW5efnMjAAABcuHsU=";
 
-    let api = null;
-    let conferenceLeft = false;
+    const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-    const loadingEl = document.getElementById('loading');
-    const endedEl = document.getElementById('ended');
-    const jitsiContainer = document.getElementById('jitsi-container');
-    const leaveBtn = document.getElementById('leave-btn');
-    function showLoading() {
-      loadingEl.classList.remove('hidden');
-      endedEl.classList.add('hidden');
+    const roomNameEl = document.getElementById("room-name");
+    const statusTextEl = document.getElementById("status-text");
+    const localStageEl = document.getElementById("local-stage");
+    const remoteStageEl = document.getElementById("remote-stage");
+    const remoteEmptyEl = document.getElementById("remote-empty");
+    const loadingOverlayEl = document.getElementById("loading-overlay");
+    const errorOverlayEl = document.getElementById("error-overlay");
+    const errorTextEl = document.getElementById("error-text");
+    const toggleMicBtn = document.getElementById("toggle-mic-btn");
+    const toggleCameraBtn = document.getElementById("toggle-camera-btn");
+    const leaveBtn = document.getElementById("leave-btn");
+
+    let localAudioTrack = null;
+    let localVideoTrack = null;
+    let joined = false;
+    let micEnabled = true;
+    let cameraEnabled = true;
+
+    roomNameEl.textContent = CHANNEL;
+
+    function setStatus(text) {
+      statusTextEl.textContent = text;
     }
 
-    function showEnded() {
-      loadingEl.classList.add('hidden');
-      endedEl.classList.remove('hidden');
+    function showLoading(visible) {
+      loadingOverlayEl.classList.toggle("hidden", !visible);
     }
 
-    function hideLoading() {
-      loadingEl.classList.add('hidden');
+    function showError(message) {
+      errorTextEl.textContent = message;
+      errorOverlayEl.classList.remove("hidden");
+      showLoading(false);
+      setStatus("入室失敗");
     }
 
-    function navigateBack() {
-      if (window.history.length > 1) {
-        window.history.back();
+    function hideError() {
+      errorOverlayEl.classList.add("hidden");
+    }
+
+    function renderButtons() {
+      toggleMicBtn.disabled = !joined || !localAudioTrack;
+      toggleCameraBtn.disabled = !joined || !localVideoTrack;
+      leaveBtn.disabled = !joined;
+      toggleMicBtn.textContent = micEnabled ? "マイク ON" : "マイク OFF";
+      toggleCameraBtn.textContent = cameraEnabled ? "カメラ ON" : "カメラ OFF";
+    }
+
+    function ensureRemoteContainer(uid) {
+      let container = document.getElementById(`remote-player-${uid}`);
+      if (!container) {
+        container = document.createElement("div");
+        container.id = `remote-player-${uid}`;
+        container.className = "video-slot";
+        remoteStageEl.appendChild(container);
+      }
+      return container;
+    }
+
+    function removeRemoteContainer(uid) {
+      const container = document.getElementById(`remote-player-${uid}`);
+      if (container) {
+        container.remove();
+      }
+      const hasRemoteVideo = remoteStageEl.querySelector("[id^='remote-player-']");
+      remoteEmptyEl.classList.toggle("hidden", Boolean(hasRemoteVideo));
+    }
+
+    async function joinRoom() {
+      hideError();
+      showLoading(true);
+      setStatus("Agora に接続中...");
+
+      try {
+        [localAudioTrack, localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+        await client.join(APP_ID, CHANNEL, TOKEN || null, null);
+        await client.publish([localAudioTrack, localVideoTrack]);
+        localVideoTrack.play(localStageEl);
+
+        joined = true;
+        micEnabled = true;
+        cameraEnabled = true;
+        renderButtons();
+        showLoading(false);
+        setStatus("入室済み - ロボットの参加を待機中");
+      } catch (error) {
+        console.error("Agora join failed:", error);
+        showError(`Agora に接続できませんでした。\n${error && error.message ? error.message : String(error)}`);
+      }
+    }
+
+    async function leaveRoom() {
+      if (!joined) {
         return;
       }
-      window.close();
-    }
 
-    function disposeConference() {
-      if (!api) {
-        return;
-      }
-      api.dispose();
-      api = null;
-      jitsiContainer.innerHTML = '';
-    }
-
-    function onConferenceLeft() {
-      conferenceLeft = true;
-      disposeConference();
-      showEnded();
-    }
-
-    function buildConference() {
-      conferenceLeft = false;
-      disposeConference();
-      showLoading();
-
-      api = new JitsiMeetExternalAPI(DOMAIN, {
-        roomName: ROOM_NAME,
-        parentNode: jitsiContainer,
-        width: '100%',
-        height: '100%',
-        userInfo: {
-          displayName: 'Guest'
-        },
-        configOverwrite: {
-          prejoinConfig: {
-            enabled: false
-          },
-          startWithAudioMuted: false,
-          startWithVideoMuted: false,
-          disableDeepLinking: true
-        },
-        interfaceConfigOverwrite: {
-          MOBILE_APP_PROMO: false,
-          SHOW_JITSI_WATERMARK: false,
-          SHOW_WATERMARK_FOR_GUESTS: false,
-          DEFAULT_REMOTE_DISPLAY_NAME: '参会者'
+      try {
+        if (localAudioTrack) {
+          localAudioTrack.stop();
+          localAudioTrack.close();
         }
-      });
-
-      api.addListener('videoConferenceJoined', hideLoading);
-      api.addListener('readyToClose', onConferenceLeft);
-      api.addListener('videoConferenceLeft', onConferenceLeft);
+        if (localVideoTrack) {
+          localVideoTrack.stop();
+          localVideoTrack.close();
+        }
+        await client.leave();
+      } catch (error) {
+        console.error("Agora leave failed:", error);
+      } finally {
+        localAudioTrack = null;
+        localVideoTrack = null;
+        joined = false;
+        micEnabled = true;
+        cameraEnabled = true;
+        localStageEl.innerHTML = "";
+        remoteStageEl.querySelectorAll("[id^='remote-player-']").forEach((node) => node.remove());
+        remoteEmptyEl.classList.remove("hidden");
+        setStatus("退出しました");
+        renderButtons();
+      }
     }
 
-    leaveBtn.addEventListener('click', function () {
-      if (api && !conferenceLeft) {
-        api.executeCommand('hangup');
-      } else {
-        navigateBack();
+    client.on("user-published", async (user, mediaType) => {
+      await client.subscribe(user, mediaType);
+
+      if (mediaType === "video") {
+        const remoteContainer = ensureRemoteContainer(user.uid);
+        user.videoTrack.play(remoteContainer);
+        remoteEmptyEl.classList.add("hidden");
+        setStatus(`ロボット接続中 (uid: ${user.uid})`);
+      }
+
+      if (mediaType === "audio") {
+        user.audioTrack.play();
       }
     });
 
-    buildConference();
+    client.on("user-unpublished", (user, mediaType) => {
+      if (mediaType === "video") {
+        removeRemoteContainer(user.uid);
+        setStatus("ロボット映像が切断されました");
+      }
+    });
+
+    client.on("user-left", (user) => {
+      removeRemoteContainer(user.uid);
+      setStatus("ロボットが退出しました");
+    });
+
+    toggleMicBtn.addEventListener("click", async () => {
+      if (!localAudioTrack) {
+        return;
+      }
+      micEnabled = !micEnabled;
+      await localAudioTrack.setEnabled(micEnabled);
+      renderButtons();
+    });
+
+    toggleCameraBtn.addEventListener("click", async () => {
+      if (!localVideoTrack) {
+        return;
+      }
+      cameraEnabled = !cameraEnabled;
+      await localVideoTrack.setEnabled(cameraEnabled);
+      renderButtons();
+    });
+
+    leaveBtn.addEventListener("click", async () => {
+      await leaveRoom();
+    });
+
+    window.addEventListener("beforeunload", () => {
+      leaveRoom();
+    });
+
+    renderButtons();
+    joinRoom();
   </script>
 </body>
 </html>
-
